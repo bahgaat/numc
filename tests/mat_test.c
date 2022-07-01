@@ -107,10 +107,7 @@ void add_test(void) {
       set(mat2, i, j, i * 2 + j);
     }
   }
-  //clock_t start = clock();
   add_matrix(result, mat1, mat2);
-  //clock_t end = clock();
-  //printf("Time taken: %Lf s\n", (long double)(end - start) / CLOCKS_PER_SEC);
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 2; j++) {
       CU_ASSERT_EQUAL(get(result, i, j), 2 * (i * 2 + j));
@@ -120,23 +117,6 @@ void add_test(void) {
   deallocate_matrix(mat1);
   deallocate_matrix(mat2);
 }
-/*
-void test_runtime_mul(void) {
-    matrix *result = NULL;
-    matrix *mat1 = NULL;
-    matrix *mat2 = NULL;
-    allocate_matrix(&result, 2000, 2000);
-    allocate_matrix(&mat1, 2000, 2000);
-    allocate_matrix(&mat2, 2000, 2000);
-    clock_t start = clock();
-    mul_matrix(result, mat1, mat2);
-    clock_t end = clock();
-    printf("Time taken: %Lf s\n", (long double)(end - start) );
-    deallocate_matrix(result);
-    deallocate_matrix(mat1);
-    deallocate_matrix(mat2);
-}
-*/
 
 
 void sub_test(void) {
@@ -184,6 +164,7 @@ void neg_test(void) {
   deallocate_matrix(mat);
 }
 
+
 void abs_test(void) {
   matrix *result = NULL;
   matrix *mat = NULL;
@@ -211,9 +192,9 @@ void mul_square_test(void) {
   matrix *result = NULL;
   matrix *mat1 = NULL;
   matrix *mat2 = NULL;
-  allocate_matrix(&result, 3, 3);
-  allocate_matrix(&mat1, 3, 3);
-  allocate_matrix(&mat2, 3, 3);
+  CU_ASSERT_EQUAL(allocate_matrix(&result, 3, 3), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat1, 3, 3), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat2, 3, 3), 0);
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       set(mat1, i, j, i * 3 + j + 1);
@@ -221,42 +202,15 @@ void mul_square_test(void) {
     }
   }
   mul_matrix(result, mat1, mat2);
-  get(result, 0, 0);//, 30);
-  get(result, 0, 1);//, 36);
-  get(result, 0, 2);// 42);
-  get(result, 1, 0);//66);
-  get(result, 1, 1);//, 81);
-  get(result, 1, 2);// 96);
-  get(result, 2, 0);// 102);
-  get(result, 2, 1);// 126);
-  get(result, 2, 2);// 150);
-  deallocate_matrix(result);
-  deallocate_matrix(mat1);
-  deallocate_matrix(mat2);
-}
-
-void mul_square_test2(void) {
-  matrix *result = NULL;
-  matrix *mat1 = NULL;
-  matrix *mat2 = NULL;
-  allocate_matrix(&result, 2, 2);
-  allocate_matrix(&mat1, 2, 2);
-  allocate_matrix(&mat2, 2, 2);
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      set(mat1, i, j, i * 2 + 9);
-    }
-  }
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      set(mat2, i, j, i * 3 + 6 + 1);
-    }
-  }
-  mul_matrix(result, mat1, mat2);
-  int i = get(result, 0, 0);
-  int x = get(result, 0, 1); //
-  int z = get(result, 1, 0); //
-  int f = get(result, 1, 1);
+  CU_ASSERT_EQUAL(get(result, 0, 0), 30);
+  CU_ASSERT_EQUAL(get(result, 0, 1), 36);
+  CU_ASSERT_EQUAL(get(result, 0, 2), 42);
+  CU_ASSERT_EQUAL(get(result, 1, 0), 66);
+  CU_ASSERT_EQUAL(get(result, 1, 1), 81);
+  CU_ASSERT_EQUAL(get(result, 1, 2), 96);
+  CU_ASSERT_EQUAL(get(result, 2, 0), 102);
+  CU_ASSERT_EQUAL(get(result, 2, 1), 126);
+  CU_ASSERT_EQUAL(get(result, 2, 2), 150);
   deallocate_matrix(result);
   deallocate_matrix(mat1);
   deallocate_matrix(mat2);
@@ -294,29 +248,6 @@ void mul_non_square_test(void) {
   deallocate_matrix(mat2);
 }
 
-void mul_additional_test(void) {
-    matrix *result = NULL;
-    matrix *mat1 = NULL;
-    CU_ASSERT_EQUAL(allocate_matrix(&result, 2, 2), 0);
-    CU_ASSERT_EQUAL(allocate_matrix(&mat1, 2, 2), 0);
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        if (i == 1 && j == 1) {
-          set(mat1, i, j, 0);
-        } else {
-          set(mat1, i, j, 1);
-        }
-      }
-    }
-    mul_matrix(result, mat1, mat1);
-    CU_ASSERT_EQUAL(get(result, 0, 0), 2);
-    CU_ASSERT_EQUAL(get(result, 0, 1), 1);
-    CU_ASSERT_EQUAL(get(result, 0, 2), 1);
-    CU_ASSERT_EQUAL(get(result, 1, 0), 1);
-    deallocate_matrix(result);
-    deallocate_matrix(mat1);
-}
-
 void pow_test(void) {
   matrix *result = NULL;
   matrix *mat = NULL;
@@ -326,11 +257,6 @@ void pow_test(void) {
   set(mat, 0, 1, 1);
   set(mat, 1, 0, 1);
   set(mat, 1, 1, 0);
-  pow_matrix(result, mat, 2);
-  CU_ASSERT_EQUAL(get(result, 0, 0), 2);
-  CU_ASSERT_EQUAL(get(result, 0, 1), 1);
-  CU_ASSERT_EQUAL(get(result, 1, 0), 1);
-  CU_ASSERT_EQUAL(get(result, 1, 1), 1);
   pow_matrix(result, mat, 3);
   CU_ASSERT_EQUAL(get(result, 0, 0), 3);
   CU_ASSERT_EQUAL(get(result, 0, 1), 2);
@@ -345,45 +271,56 @@ void pow_test(void) {
   deallocate_matrix(mat);
 }
 
-
-void mul_non_square_test_large(void) {
-  matrix *result = NULL;
-  matrix *mat1 = NULL;
-  matrix *mat2 = NULL;
-  allocate_matrix(&result, 3, 4);
-  allocate_matrix(&mat1, 3, 10);
-  allocate_matrix(&mat2, 10, 4);
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 10; j++) {
-      set(mat1, i, j, i * 3 + j + 1);
-    }
-  }
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 4; j++) {
-      set(mat2, i, j, i * 3 + j + 4);
-    }
-  }
-  mul_matrix(result, mat1, mat2);
-  double i = get(result, 0, 0);
-  double y = get(result, 0, 1);
-  double e = get(result, 0, 2);
-  double x = get(result, 0, 3);
-  double t = get(result, 1, 0);
-  double f = get(result, 1, 1);
-  double q = get(result, 1, 2);
-  double s = get(result, 1, 3);
-  double d = get(result, 2, 0);
-  double l = get(result, 2, 1);
-  double o = get(result, 2, 2);
-  double p = get(result, 2, 3);
-  deallocate_matrix(result);
-  deallocate_matrix(mat1);
-  deallocate_matrix(mat2);
-}
-
 /************* Test Runner Code goes here **************/
 
 int main (void)
 {
-  mul_square_test();
+  Py_Initialize(); // Need to call this so that Python.h functions won't segfault
+  CU_pSuite pSuite = NULL;
+
+  /* initialize the CUnit test registry */
+  if (CU_initialize_registry() != CUE_SUCCESS)
+    return CU_get_error();
+
+  /* add a suite to the registry */
+  pSuite = CU_add_suite("mat_test_suite", init_suite, clean_suite);
+  if (pSuite == NULL) {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+   /* add the tests to the suite */
+   if ((CU_add_test(pSuite, "add_test", add_test) == NULL) ||
+        /* (OPTIONAL) Uncomment the following lines if you have implemented sub_matrix and neg_matrix.
+        (CU_add_test(pSuite, "sub_test", sub_test) == NULL) ||
+        (CU_add_test(pSuite, "neg_test", neg_test) == NULL) ||
+        */
+        (CU_add_test(pSuite, "mul_square_test", mul_square_test) == NULL) ||
+        (CU_add_test(pSuite, "mul_non_square_test", mul_non_square_test) == NULL) ||
+        (CU_add_test(pSuite, "abs_test", abs_test) == NULL) ||
+        (CU_add_test(pSuite, "pow_test", pow_test) == NULL) ||
+        (CU_add_test(pSuite, "alloc_fail_test", alloc_fail_test) == NULL) ||
+        (CU_add_test(pSuite, "alloc_success_test", alloc_success_test) == NULL) ||
+        (CU_add_test(pSuite, "alloc_ref_fail_test", alloc_ref_fail_test) == NULL) ||
+        (CU_add_test(pSuite, "alloc_ref_success_test", alloc_ref_success_test) == NULL) ||
+        (CU_add_test(pSuite, "dealloc_null_test", dealloc_null_test) == NULL) ||
+        (CU_add_test(pSuite, "get_test", get_test) == NULL) ||
+        (CU_add_test(pSuite, "set_test", set_test) == NULL)
+     )
+   {
+      CU_cleanup_registry();
+      return CU_get_error();
+   }
+
+  // Run all tests using the basic interface
+  CU_basic_set_mode(CU_BRM_NORMAL);
+  // CU_basic_set_mode(CU_BRM_VERBOSE);
+  CU_basic_run_tests();
+  printf("\n");
+  CU_basic_show_failures(CU_get_failure_list());
+  printf("\n\n");
+
+  /* Clean up registry and return */
+  CU_cleanup_registry();
+  return CU_get_error();
 }

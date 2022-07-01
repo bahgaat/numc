@@ -12,19 +12,6 @@
 #include <x86intrin.h>
 #endif
 
-/* Below are some intel intrinsics that might be useful
- * void _mm256_storeu_pd (double * mem_addr, __m256d a)
- * __m256d _mm256_set1_pd (double a)
- * __m256d _mm256_set_pd (double e3, double e2, double e1, double e0)
- * __m256d _mm256_loadu_pd (double const * mem_addr)
- * __m256d _mm256_add_pd (__m256d a, __m256d b)
- * __m256d _mm256_sub_pd (__m256d a, __m256d b)
- * __m256d _mm256_fmadd_pd (__m256d a, __m256d b, __m256d c)
- * __m256d _mm256_mul_pd (__m256d a, __m256d b)
- * __m256d _mm256_cmp_pd (__m256d a, __m256d b, const int imm8)
- * __m256d _mm256_and_pd (__m256d a, __m256d b)
- * __m256d _mm256_max_pd (__m256d a, __m256d b)
-*/
 
 /* Generates a random double between low and high */
 double rand_double(double low, double high) {
@@ -48,18 +35,16 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
  * You may assume `row` and `col` are valid. Note that the matrix is in row-major order.
  */
 double get(matrix *mat, int row, int col) {
-    // Task 1.1 TODO
     int columns = mat->cols;
     int position = row * columns + col;
     return mat->data[position];
 }
 
 /*
- * Sets the value at the given row and column to val. You may assume `row` and
+ * set the value at the given row and column to val. You may assume `row` and
  * `col` are valid. Note that the matrix is in row-major order.
  */
 void set(matrix *mat, int row, int col, double val) {
-    // Task 1.1 TODO
     int columns = mat->cols;
     int position = row * columns + col;
     mat->data[position] = val;
@@ -75,16 +60,6 @@ void set(matrix *mat, int row, int col, double val) {
  * Return 0 upon success.
  */
 int allocate_matrix(matrix **mat, int rows, int cols) {
-    // Task 1.2 TODO
-    // HINTS: Follow these steps.
-    // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
-    // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
-    // 3. Allocate space for the matrix data, initializing all entries to be 0. Return -2 if allocating memory failed.
-    // 4. Set the number of rows and columns in the matrix struct according to the arguments provided.
-    // 5. Set the `parent` field to NULL, since this matrix was not created from a slice.
-    // 6. Set the `ref_cnt` field to 1.
-    // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
-    // 8. Return 0 upon success.
     if (rows <= 0 || cols <= 0) {
       return -1;
     }
@@ -113,11 +88,6 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
  * matrix has no other references (including itself).
  */
 void deallocate_matrix(matrix *mat) {
-    // Task 1.3 TODO
-    // HINTS: Follow these steps.
-    // 1. If the matrix pointer `mat` is NULL, return.
-    // 2. If `mat` has no parent: decrement its `ref_cnt` field by 1. If the `ref_cnt` field becomes 0, then free `mat` and its `data` field.
-    // 3. Otherwise, recursively call `deallocate_matrix` on `mat`'s parent, then free `mat`.
     if (mat == NULL) {
       return;
     } else if (mat->parent == NULL) {
@@ -136,7 +106,7 @@ void deallocate_matrix(matrix *mat) {
  * Allocates space for a matrix struct pointed to by `mat` with `rows` rows and `cols` columns.
  * Its data should point to the `offset`th entry of `from`'s data (you do not need to allocate memory)
  * for the data field. `parent` should be set to `from` to indicate this matrix is a slice of `from`
- * and the reference counter for `from` should be incremented. Lastly, do not forget to set the
+ * and the reference counter for `from` should be incremented. Lastly, do not forget to setthe
  * matrix's row and column values as well.
  * You should return -1 if either `rows` or `cols` or both have invalid values. Return -2 if any
  * call to allocate memory in this function fails.
@@ -145,16 +115,6 @@ void deallocate_matrix(matrix *mat) {
  * there is no need to allocate space for matrix data.
  */
 int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int cols) {
-    // Task 1.4 TODO
-    // HINTS: Follow these steps.
-    // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
-    // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
-    // 3. Set the `data` field of the new struct to be the `data` field of the `from` struct plus `offset`.
-    // 4. Set the number of rows and columns in the new struct according to the arguments provided.
-    // 5. Set the `parent` field of the new struct to the `from` struct pointer.
-    // 6. Increment the `ref_cnt` field of the `from` struct by 1.
-    // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
-    // 8. Return 0 upon success.
     if (rows <= 0 || cols <= 0) {
       return -1;
     }
@@ -173,14 +133,19 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
   }
 
 /*
- * Sets all entries in mat to val. Note that the matrix is in row-major order.
+ * set all entries in mat to val. Note that the matrix is in row-major order.
  */
 void fill_matrix(matrix *mat, double val) {
-    // Task 1.5 TODO
     int size = mat->rows * mat->cols;
     double* array = mat->data;
-    for (int i = 0; i < size; i++) {
-       array[i] = val;
+    __m256d fill_vector =  _mm256_set1_pd (val);
+    #pragma omp parallel for
+    for (int i = 0; i < size / 4 * 4; i += 4) {
+       _mm256_storeu_pd (array + i, fill_vector);
+    }
+    // tail case when size is not mulitple of 4
+    for (int i = size / 4 * 4; i < size; i++) {
+      array[i] = val;
     }
 }
 
@@ -190,29 +155,43 @@ void fill_matrix(matrix *mat, double val) {
  * Note that the matrix is in row-major order.
  */
 int abs_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
     int size = result->rows * result->cols;
     double* resultArray = result->data;
     double* matArray = mat->data;
-    for (int i = 0; i < size; i++) {
-       resultArray[i] = abs(matArray[i]);
+    __m256d mask = _mm256_set1_pd (-1);
+    #pragma omp parallel for
+    for (int i = 0; i < size / 4 * 4; i += 4) {
+       __m256d vector_matArray = _mm256_loadu_pd (matArray + i);
+       __m256d negation = _mm256_mul_pd (vector_matArray , mask);
+       __m256d abs_vector = _mm256_max_pd (negation, vector_matArray);
+       _mm256_storeu_pd (resultArray + i, abs_vector);
+    }
+    // tail case when size is not multiple of 4
+    for (int i = size / 4 * 4; i < size; i++) {
+       resultArray[i] = fabs(matArray[i]);
     }
     return 0;
 }
 
 /*
- * (OPTIONAL)
  * Store the result of element-wise negating mat's entries to `result`.
  * Return 0 upon success.
  * Note that the matrix is in row-major order.
  */
 int neg_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
     int size = result->rows * result->cols;
     double* resultArray = result->data;
     double* matArray = mat->data;
-    for (int i = 0; i < size; i++) {
-       resultArray[i] = matArray[i] * -1;
+    __m256d negation = _mm256_set1_pd(-1);
+    #pragma omp parallel for
+    for (int i = 0; i < size / 4 * 4; i += 4) {
+      __m256d vector = _mm256_loadu_pd (matArray + i);
+      __m256d negated_vector = _mm256_mul_pd (negation, vector);
+      _mm256_storeu_pd (resultArray + i, negated_vector);
+    }
+    // handle tail case
+    for (int i = size / 4 * 4; i < size; i++) {
+      resultArray[i] = matArray[i] * -1;
     }
     return 0;
 }
@@ -224,34 +203,55 @@ int neg_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     int size = result->rows * result->cols;
     double* resultArray = result->data;
     double* mat1Array = mat1->data;
     double* mat2Array = mat2->data;
-    for (int i = 0; i < size; i++) {
-       resultArray[i] = mat1Array[i] + mat2Array[i];
+    #pragma omp parallel for
+    for (int i = 0; i < size / 4 * 4; i += 4) {
+      __m256d vector_mat1Array = _mm256_loadu_pd (mat1Array + i);
+      __m256d vector_mat2Array = _mm256_loadu_pd (mat2Array + i);
+      __m256d vector_answer = _mm256_add_pd (vector_mat1Array, vector_mat2Array);
+      _mm256_storeu_pd (resultArray + i, vector_answer);
+    }
+    for (int i = size / 4 * 4; i < size; i++) {
+      resultArray[i] = mat1Array[i] + mat2Array[i];
     }
     return 0;
 }
 
 /*
- * (OPTIONAL)
+ *
  * Store the result of subtracting mat2 from mat1 to `result`.
  * Return 0 upon success.
  * You may assume `mat1` and `mat2` have the same dimensions.
  * Note that the matrix is in row-major order.
  */
 int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     int size = result->rows * result->cols;
     double* resultArray = result->data;
     double* mat1Array = mat1->data;
     double* mat2Array = mat2->data;
-    for (int i = 0; i < size; i++) {
-       resultArray[i] = mat1Array[i] - mat2Array[i];
+    #pragma omp parallel for
+    for (int i = 0; i < size / 4 * 4; i += 4) {
+      __m256d vector_mat1Array = _mm256_loadu_pd (mat1Array + i);
+      __m256d vector_mat2Array = _mm256_loadu_pd (mat2Array + i);
+      __m256d vector_answer = _mm256_sub_pd (vector_mat1Array, vector_mat2Array);
+      _mm256_storeu_pd (resultArray + i, vector_answer);
+    }
+    for (int i = size / 4 * 4; i < size; i++) {
+      resultArray[i] = mat1Array[i] - mat2Array[i];
     }
     return 0;
+}
+
+void transpose(matrix *dst, matrix *src) {
+    for (int x = 0; x < src->rows; x++) {
+        for (int y = 0; y < src->cols; y++) {
+            double value = get(src, x, y);
+            set(dst, y, x, value);
+        }
+    }
 }
 
 /*
@@ -262,16 +262,33 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.6 TODO
-    for (int k = 0; k < result->rows; k++) {
-      for (int i = 0; i < result->cols; i++) {
-        int value = 0;
-        for (int j = 0; j < mat1->cols; j++) {
-          value += get(mat1, k, j) * get(mat2, j, i);
+    matrix *mat2_transposed = NULL;
+    allocate_matrix(&mat2_transposed, mat2->cols, mat2->rows);
+    transpose(mat2_transposed, mat2);
+    #pragma omp parallel for
+    for (int row = 0; row < result->rows; row ++) {
+      int k = row * mat1->cols;
+      int i = 0;
+      for (int col = 0; col < result->cols; col ++) {
+        __m256d value = _mm256_set1_pd(0);
+        double resultArray[4];
+        for (int j = 0; j < mat1->cols / 4 * 4; j += 4) {
+          __m256d mat1_vector = _mm256_loadu_pd (mat1->data + (j + k));
+          __m256d mat2_vector = _mm256_loadu_pd (mat2_transposed->data + (j + i));
+          __m256d  multipled_vector = _mm256_mul_pd (mat1_vector, mat2_vector);
+          value = _mm256_add_pd (value, multipled_vector);
         }
-        set(result, k, i, value);
+        _mm256_storeu_pd (resultArray, value);
+         // Handle tail case
+        for (int j = mat1->cols / 4 * 4; j < mat1->cols; j++) {
+          resultArray[0] += get(mat1, row, j) * get(mat2_transposed, col, j);
+        }
+        double finalResult = resultArray[0] + resultArray[1] + resultArray[2] + resultArray[3];
+        set(result, row, col, finalResult);
+        i += mat2_transposed->cols;
       }
     }
+    deallocate_matrix(mat2_transposed);
     return 0;
 }
 
@@ -287,6 +304,7 @@ void set_to_identity_matrix(matrix *result) {
    }
  }
 
+/* copy data from mat matrix and put it in result matrix */
  void copy_matrix(matrix *result, matrix *mat) {
    int size = mat->rows * mat->cols;
    for (int i = 0; i < size; i++) {
@@ -294,32 +312,44 @@ void set_to_identity_matrix(matrix *result) {
    }
  }
 
- /*
+/*
   * Store the result of raising mat to the (pow)th power to `result`.
   * Return 0 upon success.
   * Remember that pow is defined with matrix multiplication, not element-wise multiplication.
   * You may assume `mat` is a square matrix and `pow` is a non-negative integer.
   * Note that the matrix is in row-major order.
-  */
+*/
 int pow_matrix(matrix *result, matrix *mat, int pow) {
-    //Comments : I am sure that mul_matrix is correct
-    // Task 1.6 TODO
     if (pow == 0) {
       set_to_identity_matrix(result);
     } else if (pow == 1) {
       copy_matrix(result, mat);
-    } else {
-      matrix *mat2 = NULL;
-      allocate_matrix(&mat2, mat->rows, mat->cols);
-      int size = mat->rows * mat->cols;
-      for (int i = 0; i < size; i++) {
-        mat2->data[i] = mat->data[i];
-      }
-      for (int i = 0; i < pow - 1; i++) {
-        mul_matrix(result, mat, mat2);
-        copy_matrix(mat2, result);
-      }
-      deallocate_matrix(mat2);
     }
+    matrix *mat_helper = NULL;
+    allocate_matrix(&mat_helper, mat->rows, mat->cols);
+    copy_matrix(mat_helper, mat);
+    matrix *identity_matrix = NULL;
+    allocate_matrix(&identity_matrix, mat->rows, mat->cols);
+    set_to_identity_matrix(identity_matrix);
+    matrix *identity_matrix_helper = NULL;
+    allocate_matrix(&identity_matrix_helper, mat->rows, mat->cols);
+    set_to_identity_matrix(identity_matrix_helper);
+    while (pow > 1) {
+      if (pow % 2 == 0) {
+        mul_matrix(result, mat_helper, mat_helper);
+        copy_matrix(mat_helper, result);
+        pow = pow / 2;
+      } else {
+        mul_matrix(identity_matrix, identity_matrix_helper, mat_helper);
+        copy_matrix(identity_matrix_helper, identity_matrix);
+        mul_matrix(result, mat_helper, mat_helper);
+        copy_matrix(mat_helper, result);
+        pow = (pow - 1) / 2;
+      }
+    }
+    mul_matrix(result, mat_helper, identity_matrix);
+    deallocate_matrix(mat_helper);
+    deallocate_matrix(identity_matrix);
+    deallocate_matrix(identity_matrix_helper);
     return 0;
 }
